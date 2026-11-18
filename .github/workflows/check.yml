@@ -12,6 +12,11 @@ jobs:
           python-version: '3.11'
       - name: Unit tests (no GPU or network model required)
         run: python -m unittest discover -s tests -v
+      - name: Check static website JavaScript syntax
+        run: |
+          python -c "import re; from pathlib import Path; text=Path('index.html').read_text(encoding='utf-8'); match=re.search(r'<script>([\s\S]+?)</script>', text); assert match; Path('/tmp/gambler_inline.js').write_text(match.group(1))"
+          node --check /tmp/gambler_inline.js
+          node --check data.js
       - name: Offline dashboard data smoke test
         run: |
           python gambler.py --mode demo --scenario reversal --rounds 20 --change-round 10 --seed 17

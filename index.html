@@ -140,8 +140,9 @@ function chart(canvas, series, valuesMin, valuesMax, cursor, boundary){
    ctx.strokeStyle=colors.grid;ctx.globalAlpha=.36;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(w-r,y);ctx.stroke();ctx.globalAlpha=1;
    ctx.fillStyle=colors.muted;ctx.fillText(fmt(v,valuesMax<=1?2:1),l-7,y+3);
  }
- if(boundary>0&&boundary<n){
-   const x=xx(boundary-.5);
+ for(const edge of (Array.isArray(boundary)?boundary:[boundary])){
+ if(edge<=0||edge>=n)continue;
+   const x=xx(edge-.5);
    ctx.strokeStyle=colors.accent;ctx.globalAlpha=.72;ctx.setLineDash([5,5]);
    ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,h-b);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
  }
@@ -157,7 +158,8 @@ function chart(canvas, series, valuesMin, valuesMax, cursor, boundary){
 function lensRow(row,layer){return (row.lens||{})[String(layer)]||{};}
 function renderPlots(){
  if(!data)return;
- const rows=data.rounds,boundary=(data.meta.scenario==="stationary"?-1:(data.meta.change_round||0)-1);
+ const rows=data.rounds,n=rows.length,mode=data.meta.scenario,start=(data.meta.change_round||0)-1;
+ const boundary=mode==="stationary"?[]:mode==="double"?[Math.floor(n/3),Math.floor(2*n/3)]:mode==="drift"?[Math.max(1,start-4)]:[start];
  chart($("oddsChart"),[{values:rows.map(r=>r.p_a),color:colors.a},{values:rows.map(r=>r.p_b),color:colors.b}],0,1,at,boundary);
  const layer=$("layer").value,word=$("concept").value;
  let scores=rows.map(r=>lensRow(r,layer)[word]);
@@ -218,7 +220,7 @@ function makeDemo(){
  function rand(){state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;}
  const latent=[];
  for(let i=0;i<48;i++){
-   const pa=i<24?.76:.24,pb=i<24?.24:.76;
+   const pa=i<24 ? 0.76 : 0.24, pb=i<24 ? 0.24 : 0.76;
    latent.push({p_a:pa,p_b:pb,a:rand()<pa?1:0,b:rand()<pb?1:0});
  }
  const rows=[];let total=0;

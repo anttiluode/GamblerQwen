@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GamblerQwen · Hidden Rule Observatory</title>
+<style>
+:root{--bg:#090f1a;--panel:#101b2c;--panel2:#15243a;--border:#24364d;--ink:#f0f6ff;--muted:#93a9bf;--a:#6fd7f0;--b:#f7b86d;--good:#6be1ae;--bad:#fa7e91;--accent:#b49cff}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 25% 0%,#172b48 0%,var(--bg) 55%);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1250px;margin:0 auto;padding:32px 22px 70px}
+h1{font-size:clamp(30px,5vw,58px);letter-spacing:-.05em;line-height:1.05;margin:10px 0 12px}
+h2{font-size:17px;font-weight:650;margin:0}
+p{color:var(--muted)}
+button,select,input{font:inherit}
+button,select{color:var(--ink);background:#1a2e46;border:1px solid #35536f;border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover,select:hover{background:#274260}
+button:disabled{opacity:.45;cursor:default}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=file]{display:none}
+.tag{display:inline-block;border:1px solid #415578;background:#12243a;border-radius:100px;color:#bcd0e7;padding:5px 12px;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.12em}
+.subtitle{max-width:730px;font-size:16px;margin:0 0 28px}
+.top{display:flex;gap:14px;justify-content:space-between;align-items:end;flex-wrap:wrap;margin-bottom:22px}
+.top .buttons{display:flex;gap:8px;align-items:center}
+.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:16px}
+.card{border:1px solid var(--border);border-radius:16px;background:linear-gradient(160deg,#16253a,#101a2b);padding:18px;min-width:0;box-shadow:0 8px 28px #0002}
+.card.dark{background:#0e1827}
+.span{grid-column:1 / -1}
+.sectionTop{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.mini{color:var(--muted);font-size:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:#112036}
+.kpi strong{display:block;font-size:26px;letter-spacing:-.03em;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+canvas{width:100%;height:260px;display:block}
+#lensChart{height:235px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;color:#b6c7d8;font-size:12px;margin-top:4px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.stage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.machine{background:#0e1b2c;border:1px solid var(--border);border-radius:11px;padding:15px;text-align:center}
+.machine strong{display:block;font-size:25px;margin:6px 0}
+.machine .pct{font-size:13px;color:var(--muted)}
+.machine.chosen{border-color:var(--accent);box-shadow:inset 0 0 0 1px #b49cff80}
+.machine.a strong{color:var(--a)}.machine.b strong{color:var(--b)}
+.reads{display:flex;flex-wrap:wrap;gap:7px;min-height:64px;align-content:start}
+.read{border:1px solid #405069;border-radius:8px;background:#17293f;padding:5px 9px;color:#d9e6f6}
+.read b{color:white;margin-left:7px;font-variant-numeric:tabular-nums}
+.read.positive{border-color:#3e847a}
+.read.negative{border-color:#714a63}
+.controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+#roundText{min-width:130px;font-variant-numeric:tabular-nums}
+.status{font-size:12px;color:var(--muted);margin:14px 0 0}
+.status.warning{color:var(--b)}
+.scroll{max-height:310px;overflow:auto;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+td,th{padding:9px 11px;text-align:left;border-bottom:1px solid #22354b}
+th{position:sticky;top:0;background:#142238;color:#a5bbd0;font-weight:600}
+tr.selected{background:#293a55}
+td.win{color:var(--good)}td.loss{color:var(--bad)}
+footer{font-size:12px;color:#879bb3;margin-top:18px}
+label{color:#c8d7e8;font-size:12px}
+.empty{padding:38px;border:1px dashed #466080;border-radius:12px;color:#acc2d7;margin:24px 0;line-height:1.8}
+a{color:#a7cdfc}
+@media(max-width:920px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:580px){main{padding:18px 12px 40px}.kpis{gap:7px}.kpi{padding:9px}.kpi strong{font-size:20px}.card{padding:13px}}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <div><span class="tag">Experiment 001 · Change-point detection</span><h1>Gambler<span style="color:var(--accent)">Qwen</span></h1><p class="subtitle">Can a language model recognize that an invisible probability machine has changed its rules? Watch the real odds, the choices, and—when a lens is calibrated—the model's internal concept readouts.</p></div>
+  <div class="buttons"><button id="load">Load run JSON</button><input id="jsonInput" type="file" accept=".json,application/json"><button id="replay">Replay</button></div>
+</div>
+<div id="empty" class="empty" hidden>No recorded run loaded. Generate one with <code>python gambler.py --mode demo</code>, or select a <code>results/latest.json</code> file using <b>Load run JSON</b>. For real Qwen readouts, build the lens and run <code>python gambler.py --mode qwen</code>.</div>
+<div id="content">
+  <div class="kpis">
+    <div class="kpi"><small>Recorded rounds</small><strong id="nrounds">—</strong></div>
+    <div class="kpi"><small>Wins to this point</small><strong id="wins">—</strong></div>
+    <div class="kpi"><small>Win rate</small><strong id="winrate">—</strong></div>
+    <div class="kpi"><small>Agent / scenario</small><strong id="scenario" style="font-size:17px">—</strong></div>
+  </div>
+  <div class="grid">
+    <section class="card">
+      <div class="sectionTop"><h2>The secret world</h2><span class="mini">Actual win probabilities · invisible to Qwen</span></div>
+      <canvas id="oddsChart" aria-label="Chart of actual winning probabilities for A and B"></canvas>
+      <div class="legend"><span><span class="dot" style="background:var(--a)"></span>Machine A</span><span><span class="dot" style="background:var(--b)"></span>Machine B</span><span><span class="dot" style="background:var(--accent)"></span>Hidden regime boundary</span></div>
+    </section>
+    <section class="card">
+      <div class="sectionTop"><h2>Current observation</h2><span id="roundText" class="mini">Round —</span></div>
+      <div class="stage">
+        <div class="machine a" id="armA"><span>Machine A</span><strong>A</strong><div id="oddsA" class="pct">Hidden odds —</div></div>
+        <div class="machine b" id="armB"><span>Machine B</span><strong>B</strong><div id="oddsB" class="pct">Hidden odds —</div></div>
+      </div>
+      <p id="event" style="min-height:50px"></p>
+      <div class="controls"><button id="play">▶ Play</button><button id="prev">←</button><button id="next">→</button><label for="speed">Speed</label><select id="speed"><option value="900">Slow</option><option value="420" selected>Medium</option><option value="130">Fast</option></select></div>
+      <input id="scrubber" type="range" min="0" max="47" value="0" aria-label="Replay round">
+    </section>
+    <section class="card">
+      <div class="sectionTop"><h2>J-lens signals</h2><div class="controls"><label for="layer">Layer</label><select id="layer"></select><label for="concept">Concept</label><select id="concept"></select></div></div>
+      <canvas id="lensChart" aria-label="Readout strength of selected J-lens concept over the game"></canvas>
+      <p class="mini">Z-scored concept readouts, not probabilities, private feelings, or proof of a learned algorithm. Positive or negative values are relative to a calibration corpus.</p>
+    </section>
+    <section class="card">
+      <div class="sectionTop"><h2>Concepts at this moment</h2><span class="mini">Observational probe · last prompt token</span></div>
+      <div id="reads" class="reads"></div>
+      <p id="lensStatus" class="status"></p>
+      <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:11px"><span class="mini">Run provenance</span><p id="provenance" class="mini"></p></div>
+    </section>
+    <section class="card span">
+      <div class="sectionTop"><h2>Game transcript & baselines</h2><span id="comparison" class="mini"></span></div>
+      <div class="scroll"><table><thead><tr><th>Round</th><th>Played</th><th>Reward</th><th>Total</th><th>Qwen proposed</th><th>J-change signal</th><th>True P(A)</th><th>True P(B)</th></tr></thead><tbody id="history"></tbody></table></div>
+    </section>
+  </div>
+  <footer>The vertical boundary is shown to the human observer only. Qwen sees neither odds nor change dates. The J-lens is an approximate probe of verbalizable representations; correlations require stationary/no-change controls and same-evidence interventions to justify causal claims.</footer>
+</div>
+</main>
+<script src="data.js"></script>
+<script>
+(function(){
+"use strict";
+let data=window.GAMBLER_DATA || null, at=0, playing=null;
+const $=id=>document.getElementById(id);
+const colors={a:"#6fd7f0",b:"#f7b86d",accent:"#b49cff",grid:"#35506b",muted:"#92a5bb",signal:"#9bd8a7"};
+function fmt(x,n=1){return Number.isFinite(x)?Number(x).toFixed(n):"—";}
+function pct(x){return Number.isFinite(x)?Math.round(100*x)+"%":"—";}
+function escapeHtml(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function canvasSetup(canvas){
+ const w=Math.max(240,canvas.getBoundingClientRect().width),h=canvas.getBoundingClientRect().height,scale=window.devicePixelRatio||1;
+ canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
+ const ctx=canvas.getContext("2d");ctx.scale(scale,scale);return {ctx,w,h};
+}
+function chart(canvas, series, valuesMin, valuesMax, cursor, boundary){
+ const {ctx,w,h}=canvasSetup(canvas), l=42,r=12,t=14,b=29;
+ const W=w-l-r,H=h-t-b,n=data.rounds.length,xx=i=>l+(i/Math.max(1,n-1))*W;
+ const yy=v=>t+H-(v-valuesMin)/(valuesMax-valuesMin)*H;
+ ctx.clearRect(0,0,w,h);ctx.font="11px system-ui";
+ ctx.textAlign="right";ctx.lineWidth=1;
+ for(let j=0;j<=4;j++){
+   let v=valuesMin+j*(valuesMax-valuesMin)/4,y=yy(v);
+   ctx.strokeStyle=colors.grid;ctx.globalAlpha=.36;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(w-r,y);ctx.stroke();ctx.globalAlpha=1;
+   ctx.fillStyle=colors.muted;ctx.fillText(fmt(v,valuesMax<=1?2:1),l-7,y+3);
+ }
+ if(boundary>0&&boundary<n){
+   const x=xx(boundary-.5);
+   ctx.strokeStyle=colors.accent;ctx.globalAlpha=.72;ctx.setLineDash([5,5]);
+   ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,h-b);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+ }
+ series.forEach(s=>{
+   ctx.strokeStyle=s.color;ctx.lineWidth=2.5;ctx.beginPath();let started=false;
+   s.values.forEach((v,i)=>{if(v==null||!Number.isFinite(v)){started=false;return;}const x=xx(i),y=yy(v);if(!started)ctx.moveTo(x,y);else ctx.lineTo(x,y);started=true;});ctx.stroke();
+ });
+ const x=xx(cursor);
+ ctx.strokeStyle="#ffffff";ctx.globalAlpha=.55;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,h-b);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+ ctx.textAlign="center";ctx.fillStyle=colors.muted;
+ for(let i=0;i<=4;i++){const k=Math.round((n-1)*i/4);ctx.fillText(k+1,xx(k),h-9);}
+}
+function lensRow(row,layer){return (row.lens||{})[String(layer)]||{};}
+function renderPlots(){
+ if(!data)return;
+ const rows=data.rounds,boundary=(data.meta.scenario==="stationary"?-1:(data.meta.change_round||0)-1);
+ chart($("oddsChart"),[{values:rows.map(r=>r.p_a),color:colors.a},{values:rows.map(r=>r.p_b),color:colors.b}],0,1,at,boundary);
+ const layer=$("layer").value,word=$("concept").value;
+ let scores=rows.map(r=>lensRow(r,layer)[word]);
+ const found=scores.filter(Number.isFinite);
+ const lo=found.length?Math.min(-1,Math.floor(Math.min(...found))):-1;
+ const hi=found.length?Math.max(1,Math.ceil(Math.max(...found))):1;
+ chart($("lensChart"),[{values:scores,color:colors.signal}],lo,hi,at,boundary);
+}
+function selectOptions(){
+ const layers=[...new Set(data.rounds.flatMap(r=>Object.keys(r.lens||{})))].sort((a,b)=>+a-(+b));
+ $("layer").innerHTML=layers.length?layers.map(l=>'<option value="'+escapeHtml(l)+'">'+escapeHtml(l)+'</option>').join(""):'<option value="">No calibrated lens</option>';
+ if(layers.includes("26"))$("layer").value="26"; else if(layers.length)$("layer").value=layers[layers.length-1];
+ updateConcepts();
+}
+function updateConcepts(){
+ const layer=$("layer").value;
+ const words=[...new Set(data.rounds.flatMap(r=>Object.keys(lensRow(r,layer))))].sort();
+ const old=$("concept").value;
+ $("concept").innerHTML=words.length?words.map(w=>'<option value="'+escapeHtml(w)+'">'+escapeHtml(w)+'</option>').join(""):'<option value="">No data</option>';
+ if(words.includes(old))$("concept").value=old;
+ else if(words.includes("changed"))$("concept").value="changed";
+ else if(words.includes("change"))$("concept").value="change";
+}
+function show(){
+ if(!data||!data.rounds.length)return;
+ at=Math.max(0,Math.min(data.rounds.length-1,at));
+ const r=data.rounds[at],m=data.meta;
+ $("nrounds").textContent=data.rounds.length;
+ $("wins").textContent=r.total;
+ $("winrate").textContent=pct(r.total/(at+1));
+ $("scenario").textContent=(m.source==="qwen"?"Qwen":"DEMO")+" / "+m.scenario;
+ $("roundText").textContent="Round "+r.round+" / "+data.rounds.length;
+ $("oddsA").textContent="True P(win): "+pct(r.p_a);
+ $("oddsB").textContent="True P(win): "+pct(r.p_b);
+ $("armA").classList.toggle("chosen",r.action==="A");$("armB").classList.toggle("chosen",r.action==="B");
+ $("event").innerHTML="Played <b>"+escapeHtml(r.action)+"</b>. "+(r.reward?'<span style="color:var(--good)">Won a point.</span>':'<span style="color:var(--bad)">No point.</span>')+
+   (r.proposed && r.proposed!==r.action?" (Qwen proposed "+escapeHtml(r.proposed)+"; fixed schedule executed.)":"");
+ $("scrubber").max=data.rounds.length-1;$("scrubber").value=at;
+ const layer=$("layer").value,scores=lensRow(r,layer);
+ const ranked=Object.entries(scores).filter(([w,v])=>Number.isFinite(v)).sort((a,b)=>b[1]-a[1]).slice(0,10);
+ $("reads").innerHTML=ranked.map(([w,v])=>'<span class="read '+(v>=0?"positive":"negative")+'">'+escapeHtml(w)+'<b>'+fmt(v,2)+'</b></span>').join("") ||
+   '<span class="mini">No actual Jacobian-lens readouts in this run.</span>';
+ $("lensStatus").textContent=(m.source==="qwen"&&m.lens_source!=="none")?
+   "Calibrated lens: "+m.lens_source+" · layer "+layer+". These are not calibrated probabilities of a rule change.":
+   "No genuine J-lens traces here. Build the lens and run --mode qwen.";
+ $("lensStatus").classList.toggle("warning",!(m.source==="qwen"&&m.lens_source!=="none"));
+ $("provenance").textContent=m.note+" Model: "+(m.model||"none")+"; seed "+m.seed+
+   "; executed actions: "+m.execution_policy+".";
+ const b=data.baselines||{};
+ $("comparison").textContent="Wins across full run: "+Object.entries(b).map(([n,v])=>n+" "+v.wins).join(" · ");
+ $("history").innerHTML=data.rounds.slice(0,at+1).map((q,i)=>'<tr class="'+(i===at?"selected":"")+'"><td>'+q.round+'</td><td>'+escapeHtml(q.action)+'</td><td class="'+(q.reward?"win":"loss")+'">'+q.reward+'</td><td>'+q.total+'</td><td>'+escapeHtml(q.proposed||"—")+'</td><td>'+fmt(q.signal,2)+'</td><td>'+pct(q.p_a)+'</td><td>'+pct(q.p_b)+'</td></tr>').join("");
+ const scroll=$("history").closest(".scroll");if(scroll&&at>5)scroll.scrollTop=scroll.scrollHeight;
+ renderPlots();
+}
+function load(d){
+ if(!d||!Array.isArray(d.rounds)||!d.rounds.length||!d.meta)throw Error("Expected report with meta and nonempty rounds.");
+ data=d;at=0;stop();$("empty").hidden=true;$("content").hidden=false;selectOptions();show();
+}
+function stop(){if(playing){clearInterval(playing);playing=null;}$("play").textContent="▶ Play";}
+$("play").onclick=()=>{
+ if(playing){stop();return;}if(at===data.rounds.length-1)at=0;
+ $("play").textContent="Ⅱ Pause";
+ playing=setInterval(()=>{if(at>=data.rounds.length-1){stop();return;}at++;show();},Number($("speed").value));
+};
+$("prev").onclick=()=>{stop();at--;show();};
+$("next").onclick=()=>{stop();at++;show();};
+$("replay").onclick=()=>{stop();at=0;show();};
+$("scrubber").oninput=e=>{stop();at=+e.target.value;show();};
+$("layer").onchange=()=>{updateConcepts();show();};
+$("concept").onchange=show;
+$("load").onclick=()=>$("jsonInput").click();
+$("jsonInput").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const reader=new FileReader();
+ reader.onload=()=>{try{load(JSON.parse(reader.result));}catch(err){alert("Cannot load report: "+err.message);}};
+ reader.readAsText(f);
+};
+window.addEventListener("resize",()=>{if(data)renderPlots();});
+if(data){try{load(data);}catch(e){$("empty").hidden=false;$("content").hidden=true;console.error(e);}}
+else{$("empty").hidden=false;$("content").hidden=true;}
+})();
+</script>
+</body>
+</html>

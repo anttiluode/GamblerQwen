@@ -88,12 +88,25 @@ Run CPU-only tests:
 
     python3.13 -m unittest discover -s tests -v
 
-## Publish the dashboard
+## Published recordings and website
 
-After a real run, data.js will contain its data. To publish:
+The repository already contains **two real CUDA Qwen runs**:
+- [Original free-choice run](results/latest.json) — Qwen plays its own proposals; 24 rewards / 48.
+- [Forced alternating-observation run](results/reversal_alternate17.json) — Qwen proposes, A/B alternation is played; 21 rewards / 48 on the *forced schedule*.
 
+[The analysis](FINDINGS.md) explains why Qwen preferring B in both runs is not evidence that it detects an unannounced reversal. The recorded game, readouts, and comparisons are displayed in [index.html](index.html) with a **Run** selector. The tracked [data.js](data.js) contains both actual recordings so static hosting works without a backend, local Python server, or runtime fetch.
+
+To regenerate the website's bundled recordings, from the repository root:
+
+    python3.13 publish_results.py
     git add data.js
-    git commit -m "Publish recorded Qwen experiment"
+    git commit -m "Update published Qwen replays"
     git push
 
-Then enable **Settings → Pages → Deploy from branch → main / root** for the repository. Once enabled, the site URL will be https://anttiluode.github.io/GamblerQwen/ . The initial empty webpage does not imply Qwen has run.
+To include another checked-in JSON result, pass the full desired list (the order selects the default recording):
+
+    python3.13 publish_results.py results/newrun.json results/reversal_alternate17.json results/latest.json
+
+Note: running gambler.py writes data.js with the **single newly recorded experiment** for immediate local viewing. Before committing a multi-run site update, use publish_results.py to rebuild the multi-run bundle.
+
+GitHub Pages can serve the static index and bundled data at https://anttiluode.github.io/GamblerQwen/ if enabled for **Settings → Pages → Deploy from branch → main / root**. GitHub Actions tests the simulator and data fidelity, but a passing workflow does not itself mean that Pages is enabled.

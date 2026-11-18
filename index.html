@@ -63,23 +63,38 @@ label{color:#c8d7e8;font-size:12px}
 a{color:#a7cdfc}
 @media(max-width:920px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:580px){main{padding:18px 12px 40px}.kpis{gap:7px}.kpi{padding:9px}.kpi strong{font-size:20px}.card{padding:13px}}
+.reportGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.report{border:1px solid #34506a;background:#0e1d30;border-radius:12px;padding:14px}
+.report strong{font-size:25px;line-height:1.15;font-variant-numeric:tabular-nums;display:block;margin:7px 0}
+.report p{margin:5px 0;font-size:12px}
+.report .title{font-size:13px;color:#d9e5f4;font-weight:700}
+#verdict{margin:15px 0 4px;color:#d9e5f4}
+.runselect{display:flex;gap:7px;align-items:center}
+.runselect select{max-width:min(360px,58vw)}
+@media(max-width:580px){.reportGrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main>
 <div class="top">
   <div><span class="tag">Experiment 001 · Change-point detection</span><h1>Gambler<span style="color:var(--accent)">Qwen</span></h1><p class="subtitle">Can a language model recognize that an invisible probability machine has changed its rules? Watch the real odds, the choices, and—when a lens is calibrated—the model's internal concept readouts.</p></div>
-  <div class="buttons"><button id="load">Load run JSON</button><input id="jsonInput" type="file" accept=".json,application/json"><button id="replay">Replay</button></div>
+  <div class="buttons"><label class="runselect" for="runPicker">Run <select id="runPicker" aria-label="Choose recorded experiment"></select></label><button id="load">Load run JSON</button><input id="jsonInput" type="file" accept=".json,application/json"><button id="replay">Replay</button></div>
 </div>
 <div id="empty" class="empty" hidden>No recorded run loaded. Generate one with <code>python gambler.py --mode demo</code>, or select a <code>results/latest.json</code> file using <b>Load run JSON</b>. For real Qwen readouts, build the lens and run <code>python gambler.py --mode qwen</code>.</div>
 <div id="content">
   <div class="kpis">
     <div class="kpi"><small>Recorded rounds</small><strong id="nrounds">—</strong></div>
-    <div class="kpi"><small>Wins to this point</small><strong id="wins">—</strong></div>
+    <div class="kpi"><small id="winsLabel">Recorded rewards</small><strong id="wins">—</strong></div>
     <div class="kpi"><small>Win rate</small><strong id="winrate">—</strong></div>
     <div class="kpi"><small>Agent / scenario</small><strong id="scenario" style="font-size:17px">—</strong></div>
   </div>
   <div class="grid">
+    <section class="card span" id="analysisCard">
+      <div class="sectionTop"><h2>What the actual runs show</h2><a class="mini" href="https://github.com/anttiluode/GamblerQwen/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read full analysis</a></div>
+      <div id="runComparison" class="reportGrid"></div>
+      <p id="verdict"></p>
+      <p class="mini">Both recordings use the same hidden probability reversal on round 25. The alternating run executes a fixed A/B schedule, while Qwen merely proposes actions. Reward counts in that run belong to the forced schedule, not Qwen's hypothetical policy. Concept readouts are observational, not evidence of subjective experience.</p>
+    </section>
     <section class="card">
       <div class="sectionTop"><h2>The secret world</h2><span class="mini">Actual win probabilities · invisible to Qwen</span></div>
       <canvas id="oddsChart" aria-label="Chart of actual winning probabilities for A and B"></canvas>
@@ -118,6 +133,7 @@ a{color:#a7cdfc}
 <script>
 (function(){
 "use strict";
+let runs=Array.isArray(window.GAMBLER_RUNS)?window.GAMBLER_RUNS:[];
 let data=window.GAMBLER_DATA || null, at=0, playing=null;
 const $=id=>document.getElementById(id);
 const colors={a:"#6fd7f0",b:"#f7b86d",accent:"#b49cff",grid:"#35506b",muted:"#92a5bb",signal:"#9bd8a7"};
@@ -162,7 +178,7 @@ function renderPlots(){
  const boundary=mode==="stationary"?[]:mode==="double"?[Math.floor(n/3),Math.floor(2*n/3)]:mode==="drift"?[Math.max(1,start-4)]:[start];
  chart($("oddsChart"),[{values:rows.map(r=>r.p_a),color:colors.a},{values:rows.map(r=>r.p_b),color:colors.b}],0,1,at,boundary);
  const layer=$("layer").value,word=$("concept").value;
- let scores=rows.map(r=>lensRow(r,layer)[word]);
+ let scores=rows.map(r=>word==="__margin__" ? (r.logits && Number.isFinite(r.logits.B) && Number.isFinite(r.logits.A) ? r.logits.B-r.logits.A : null) : lensRow(r,layer)[word]);
  const found=scores.filter(Number.isFinite);
  const lo=found.length?Math.min(-1,Math.floor(Math.min(...found))):-1;
  const hi=found.length?Math.max(1,Math.ceil(Math.max(...found))):1;
@@ -178,10 +194,13 @@ function updateConcepts(){
  const layer=$("layer").value;
  const words=[...new Set(data.rounds.flatMap(r=>Object.keys(lensRow(r,layer))))].sort();
  const old=$("concept").value;
- $("concept").innerHTML=words.length?words.map(w=>'<option value="'+escapeHtml(w)+'">'+escapeHtml(w)+'</option>').join(""):'<option value="">No data</option>';
+ let html=words.length?words.map(w=>'<option value="'+escapeHtml(w)+'">'+escapeHtml(w)+'</option>').join(""):'<option value="">No data</option>';
+ if(data.meta.source==="qwen")html='<option value="__margin__">Qwen choice score (B minus A)</option>'+html;
+ $("concept").innerHTML=html;
  if(words.includes(old))$("concept").value=old;
  else if(words.includes("changed"))$("concept").value="changed";
  else if(words.includes("change"))$("concept").value="change";
+ else if(data.meta.source==="qwen")$("concept").value="__margin__";
 }
 function show(){
  if(!data||!data.rounds.length)return;
@@ -189,8 +208,9 @@ function show(){
  const r=data.rounds[at],m=data.meta;
  $("nrounds").textContent=data.rounds.length;
  $("wins").textContent=r.total;
+ $("winsLabel").textContent=m.execution_policy==="alternate"?"Rewards (forced policy)":"Rewards to this point";
  $("winrate").textContent=pct(r.total/(at+1));
- $("scenario").textContent=(m.source==="qwen"?"Qwen":"DEMO")+" / "+m.scenario;
+ $("scenario").textContent=(m.source==="qwen"?(m.execution_policy==="alternate"?"Qwen proposals / forced A/B":"Qwen plays"):"DEMO")+" / "+m.scenario;
  $("roundText").textContent="Round "+r.round+" / "+data.rounds.length;
  $("oddsA").textContent="True P(win): "+pct(r.p_a);
  $("oddsB").textContent="True P(win): "+pct(r.p_b);
@@ -242,9 +262,47 @@ function makeDemo(){
     note:"Built-in simulated example, NOT a Qwen experiment. Load real results/latest.json when available."},
     rounds:rows,baselines,metrics:{wins:total,rounds:48}};
 }
+function computeStats(d){
+ const list=d.rounds,split=Math.max(0,Math.min(list.length,(d.meta.change_round||Math.round(list.length/2)+1)-1));
+ const part=rs=>({n:rs.length,A:rs.filter(x=>x.proposed==="A").length,
+   B:rs.filter(x=>x.proposed==="B").length,
+   optimal:rs.filter(x=>x.proposed&&(x.proposed===(x.p_a>x.p_b?"A":"B"))).length,
+   wins:rs.reduce((v,x)=>v+x.reward,0)});
+ return {pre:part(list.slice(0,split)),post:part(list.slice(split)),
+   all:part(list),policy:d.meta.execution_policy};
+}
+function syncRunPicker(){
+ const selector=$("runPicker");
+ selector.innerHTML=runs.map((r,i)=>'<option value="'+i+'">'+escapeHtml(r.label||r.id||("Run "+(i+1)))+'</option>').join("");
+ const i=runs.findIndex(r=>r.data===data);
+ if(i>=0)selector.value=String(i);
+ selector.disabled=runs.length<2;
+}
+function renderAnalysis(){
+ const recordings=runs.filter(r=>r.data?.meta?.source==="qwen");
+ const items=recordings.slice(0,4).map(r=>{
+   const st=computeStats(r.data),forced=st.policy==="alternate";
+   return '<div class="report"><span class="title">'+(forced?"Controlled observations · forced A/B":"Original run · free-choice")+'</span>'+
+      '<strong>'+st.all.B+' / '+st.all.n+' proposed B</strong>'+
+      '<p>Before rule change: <b>'+st.pre.optimal+'/'+st.pre.n+'</b> proposals chose the better machine</p>'+
+      '<p>After rule change: <b>'+st.post.optimal+'/'+st.post.n+'</b> proposals chose the better machine</p>'+
+      '<p>Recorded wins: '+st.all.wins+' / '+st.all.n+(forced?' <b>(forced policy)</b>':'')+'</p></div>';
+ }).join("");
+ $("runComparison").innerHTML=items||'<span class="mini">No real Qwen recordings available. Run the CUDA experiment to populate this panel.</span>';
+ const forced=recordings.find(r=>r.data.meta.execution_policy==="alternate"),free=recordings.find(r=>r.data.meta.execution_policy==="qwen");
+ if(forced&&free){
+   $("verdict").textContent="Finding: forced alternation gave Qwen observations from both arms, yet it proposed B on "+
+     computeStats(forced.data).all.B+" of 48 rounds. The original also preferred B ("+
+     computeStats(free.data).all.B+" of 48). Better outcomes after round 25 therefore do not demonstrate detecting the rule change. A stationary-world control and counterbalanced labels are still missing.";
+ }else if(recordings.length){
+   $("verdict").textContent="The readouts are observational. A single run cannot establish change-point detection; compare an unchanged world and counterbalanced choices.";
+ }else{
+   $("verdict").textContent="Simulation only; no real Qwen readouts or conclusions.";
+ }
+}
 function load(d){
  if(!d||!Array.isArray(d.rounds)||!d.rounds.length||!d.meta)throw Error("Expected report with meta and nonempty rounds.");
- data=d;at=0;stop();$("empty").hidden=true;$("content").hidden=false;selectOptions();show();
+ data=d;at=0;stop();$("empty").hidden=true;$("content").hidden=false;syncRunPicker();selectOptions();show();renderAnalysis();
 }
 function stop(){if(playing){clearInterval(playing);playing=null;}$("play").textContent="▶ Play";}
 $("play").onclick=()=>{
@@ -259,15 +317,16 @@ $("scrubber").oninput=e=>{stop();at=+e.target.value;show();};
 $("layer").onchange=()=>{updateConcepts();show();};
 $("concept").onchange=show;
 $("load").onclick=()=>$("jsonInput").click();
+$("runPicker").onchange=e=>{const entry=runs[Number(e.target.value)];if(entry)load(entry.data);};
 $("jsonInput").onchange=e=>{
  const f=e.target.files[0];if(!f)return;
  const reader=new FileReader();
- reader.onload=()=>{try{load(JSON.parse(reader.result));}catch(err){alert("Cannot load report: "+err.message);}};
+ reader.onload=()=>{try{const parsed=JSON.parse(reader.result);runs.push({id:f.name,label:"Uploaded · "+f.name,data:parsed});load(parsed);}catch(err){alert("Cannot load report: "+err.message);}};
  reader.readAsText(f);
 };
 window.addEventListener("resize",()=>{if(data)renderPlots();});
-if(data){try{load(data);}catch(e){$("empty").hidden=false;$("content").hidden=true;console.error(e);}}
-else{load(makeDemo());}
+if(data){try{if(!runs.length)runs.push({id:"default",label:"Recorded experiment",data});load(data);}catch(e){$("empty").hidden=false;$("content").hidden=true;console.error(e);}}
+else{data=makeDemo();runs.push({id:"demo",label:"Simulated example (not Qwen)",data});load(data);}
 })();
 </script>
 </body>

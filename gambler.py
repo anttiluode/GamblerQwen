@@ -255,7 +255,7 @@ def run(args: argparse.Namespace) -> dict:
             print("WARNING: J-lens unavailable. Qwen choices will be real, but readouts empty.")
             print("Run build_lens.py once, or pass --lens path/to/lens.pt.")
         qwen = QwenPolicy(args.model, args.device, path, tuple(args.layers))
-    rows = simulate(world, args.mode, args.seed, qwen, args.execute, args.layers[-1])
+    rows = simulate(world, "window" if args.mode == "demo" else args.mode, args.seed, qwen, args.execute, args.layers[-1])
     baselines = {}
     for name in ("random", "alternate", "win-stay-lose-switch", "window"):
         rr = simulate_quiet(world, name, args.seed)

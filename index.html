@@ -212,6 +212,34 @@ function show(){
  const scroll=$("history").closest(".scroll");if(scroll&&at>5)scroll.scrollTop=scroll.scrollHeight;
  renderPlots();
 }
+function makeDemo(){
+ // Built-in browser example. No model is loaded and no lens values are invented.
+ let state=20261118;
+ function rand(){state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;}
+ const latent=[];
+ for(let i=0;i<48;i++){
+   const pa=i<24?.76:.24,pb=i<24?.24:.76;
+   latent.push({p_a:pa,p_b:pb,a:rand()<pa?1:0,b:rand()<pb?1:0});
+ }
+ const rows=[];let total=0;
+ for(let i=0;i<latent.length;i++){
+   const t=latent[i],window=rows.slice(-12);
+   function rate(arm){const seen=window.filter(x=>x.action===arm);return (seen.reduce((a,x)=>a+x.reward,0)+1)/(seen.length+2);}
+   const arm=(i<4)?(i%2?"B":"A"):(rand()<.14?(rand()<.5?"A":"B"):(rate("A")>=rate("B")?"A":"B"));
+   const reward=arm==="A"?t.a:t.b;total+=reward;
+   rows.push({round:i+1,p_a:t.p_a,p_b:t.p_b,regime:i<24?"pre":"post",action:arm,
+       proposed:null,reward,total,lens:{},signal:null,logits:{}});
+ }
+ const baselines={};
+ let alt=0,random=0;
+ latent.forEach((t,i)=>{alt+=(i%2===0?t.a:t.b);random+=(rand()<.5?t.a:t.b);});
+ baselines.alternate={wins:alt,rounds:48};
+ baselines.random={wins:random,rounds:48};
+ return {meta:{source:"demo",scenario:"reversal",seed:20261118,rounds:48,change_round:25,
+    model:null,lens_source:"none",execution_policy:"browser sliding-window demo",
+    note:"Built-in simulated example, NOT a Qwen experiment. Load real results/latest.json when available."},
+    rounds:rows,baselines,metrics:{wins:total,rounds:48}};
+}
 function load(d){
  if(!d||!Array.isArray(d.rounds)||!d.rounds.length||!d.meta)throw Error("Expected report with meta and nonempty rounds.");
  data=d;at=0;stop();$("empty").hidden=true;$("content").hidden=false;selectOptions();show();
@@ -237,7 +265,7 @@ $("jsonInput").onchange=e=>{
 };
 window.addEventListener("resize",()=>{if(data)renderPlots();});
 if(data){try{load(data);}catch(e){$("empty").hidden=false;$("content").hidden=true;console.error(e);}}
-else{$("empty").hidden=false;$("content").hidden=true;}
+else{load(makeDemo());}
 })();
 </script>
 </body>
